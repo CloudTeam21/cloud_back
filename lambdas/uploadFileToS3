@@ -14,6 +14,7 @@ def lambda_handler(event, context):
     file_size = request_body['file']['size']
     file_type = request_body['file']['type']
     file_last_modified = request_body['file']['lastModified']
+    caption = request_body['file']['caption']
         
     # Upload the file to S3
     s3_client.put_object(
@@ -32,6 +33,7 @@ def lambda_handler(event, context):
             'type': file_type,
             'size': file_size,
             'lastModified': file_last_modified,
+            'caption': caption
         }
     )
     
