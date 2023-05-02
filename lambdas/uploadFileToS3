@@ -1,0 +1,45 @@
+import json
+import boto3
+import base64
+
+s3_client = boto3.client('s3')
+dynamodb = boto3.resource('dynamodb')
+
+def lambda_handler(event, context):
+    # Extract the file content and metadata from the request
+    request_body = json.loads(event['body'])
+    bucket_name = 'kiriku-files'
+    file_content = base64.b64decode(request_body['file']['content']  + "="*((4 - len(request_body['file']['content']) % 4) % 4))
+    file_name = request_body['file']['filename']
+    file_size = request_body['file']['size']
+    file_type = request_body['file']['type']
+    file_last_modified = request_body['file']['lastModified']
+        
+    # Upload the file to S3
+    s3_client.put_object(
+        Bucket=bucket_name,
+        Key=file_name,
+        Body=file_content
+    )
+    
+    # Table name
+    table = dynamodb.Table('file-info')
+    
+    # Insert file name into table
+    response = table.put_item(
+        Item={
+            'file': file_name,
+            'type': file_type,
+            'size': file_size,
+            'lastModified': file_last_modified,
+        }
+    )
+    
+    # Return a response indicating success
+    response = {
+        "statusCode": 200,
+        'Access-Control-Allow-Origin': '*',
+        "body": json.dumps({"message": "File uploaded successfully"})
+    }
+    
+    return response
