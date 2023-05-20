@@ -1,0 +1,85 @@
+org: jananikolic
+app: cloud-storage
+service: cloud-storage
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.9
+  stage: dev
+  region: eu-central-1
+  memorySize: 128
+  timeout: 10
+  environment:
+    TABLE_NAME:
+      Ref: filesTable
+    BUCKET_NAME:
+      Ref: filesBucket
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - "Fn::GetAtt": [filesTable, Arn]
+    - Effect: Allow
+      Action:
+        - 's3:GetObject'
+        - 's3:PutObject'
+        - 's3:DeleteObject'
+      Resource:
+        - 'arn:aws:s3:::kiriku-bucket-files/*'
+
+# Packaging global configuration
+package:
+  # Create separate zip for each Lambda function
+  individually: true
+  patterns:
+    # Exclude everything (each Lambda will specify which directory should be included)
+    # To exclude use '!' prefix
+    - '!**/**'
+    # Include utility directory for every Lambda function
+    - 'utility/**'
+
+functions:
+  uploadFile:
+    handler: uploadFile/upload_file.upload
+    package:
+      # Include 'uploadFile' directory and all child directories
+      include: 'uploadFile/**'
+    # Specifies events that trigger the Lambda function
+    events:
+      # REST API endpoint of API Gateway
+      - http:
+          # Path for this endpoint
+          path: file
+          # HTTP method for this endpoint
+          method: post
+          # Enable CORS. Don't forget to return the right header in your response
+          cors: true
+
+resources:
+  Resources:
+    filesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: serverlessFilesTable
+        AttributeDefinitions:
+          - AttributeName: file
+            AttributeType: S
+        KeySchema:
+          - AttributeName: file
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    filesBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: kiriku-bucket-files
+        
