@@ -19,6 +19,7 @@ def upload(event, context):
     file_type = request_body['file']['type']
     file_last_modified = request_body['file']['lastModified']
     caption = request_body['file']['caption']
+    tags = request_body['file']['tags']
         
     # Upload the file to S3
     s3_client.put_object(
@@ -37,7 +38,8 @@ def upload(event, context):
             'type': file_type,
             'size': file_size,
             'lastModified': file_last_modified,
-            'caption': caption
+            'caption': caption,
+            'tags': tags
         }
     )
     
