@@ -1,7 +1,7 @@
 org: jananikolic
 app: cloud-storage
 service: cloud-storage
-frameworkVersion: '3'
+frameworkVersion: "3"
 
 provider:
   name: aws
@@ -29,11 +29,11 @@ provider:
         - "Fn::GetAtt": [filesTable, Arn]
     - Effect: Allow
       Action:
-        - 's3:GetObject'
-        - 's3:PutObject'
-        - 's3:DeleteObject'
+        - "s3:GetObject"
+        - "s3:PutObject"
+        - "s3:DeleteObject"
       Resource:
-        - 'arn:aws:s3:::kiriku-bucket-files/*'
+        - "arn:aws:s3:::kiriku-bucket-files/*"
 
 # Packaging global configuration
 package:
@@ -42,16 +42,16 @@ package:
   patterns:
     # Exclude everything (each Lambda will specify which directory should be included)
     # To exclude use '!' prefix
-    - '!**/**'
+    - "!**/**"
     # Include utility directory for every Lambda function
-    - 'utility/**'
+    - "utility/**"
 
 functions:
   uploadFile:
     handler: uploadFile/upload_file.upload
     package:
       # Include 'uploadFile' directory and all child directories
-      include: 'uploadFile/**'
+      include: "uploadFile/**"
     # Specifies events that trigger the Lambda function
     events:
       # REST API endpoint of API Gateway
@@ -62,6 +62,10 @@ functions:
           method: post
           # Enable CORS. Don't forget to return the right header in your response
           cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
 
 resources:
   Resources:
@@ -82,4 +86,28 @@ resources:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: kiriku-bucket-files
-        
+    DataHiveCognitoUserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: registered-users
+        AutoVerifiedAttributes:
+          - "email"
+        EmailConfiguration: 
+                EmailSendingAccount: COGNITO_DEFAULT
+    DataHiveCognitoUserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: DataHive
+        GenerateSecret: false
+        UserPoolId:
+          Ref: "DataHiveCognitoUserPool"
+    DataHiveApiGatewayAuthorizer:
+      Type: AWS::ApiGateway::Authorizer
+      Properties:
+        Name: DataHive
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        Type: COGNITO_USER_POOLS
+        ProviderARNs:
+          - Fn::GetAtt: [DataHiveCognitoUserPool, Arn]
+        IdentitySource: method.request.header.Authorization
