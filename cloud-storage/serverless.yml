@@ -109,6 +109,7 @@ functions:
             type: COGNITO_USER_POOLS
             authorizerId:
               Ref: DataHiveApiGatewayAuthorizer
+<<<<<<< Updated upstream
   createAlbum:
     handler: createAlbum/create_album.create_album
     package:
@@ -124,11 +125,22 @@ functions:
           # HTTP method for this endpoint
           method: post
           # Enable CORS. Don't forget to return the right header in your response
+=======
+  shareFolder:
+    handler: shareFolder/share_folder.shareFolder
+    package:
+      include: "shareFolder/**"
+    events:
+      - http:
+          path: folder/share
+          method: post
+>>>>>>> Stashed changes
           cors: true
           authorizer:
             type: COGNITO_USER_POOLS
             authorizerId:
               Ref: DataHiveApiGatewayAuthorizer
+<<<<<<< Updated upstream
   deleteAlbum:
     handler: deleteAlbum/delete_album.delete_album
     package:
@@ -168,6 +180,9 @@ functions:
             authorizerId:
               Ref: DataHiveApiGatewayAuthorizer
 
+=======
+              
+>>>>>>> Stashed changes
 resources:
   Resources:
     filesTable:
