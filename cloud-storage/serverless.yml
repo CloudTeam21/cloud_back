@@ -109,6 +109,20 @@ functions:
             type: COGNITO_USER_POOLS
             authorizerId:
               Ref: DataHiveApiGatewayAuthorizer
+  shareFolder:
+    handler: shareFolder/share_folder.shareFolder
+    package:
+      include: "shareFolder/**"
+    events:
+      - http:
+          path: folder/share
+          method: post
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
+
   createAlbum:
     handler: createAlbum/create_album.create_album
     package:
@@ -120,7 +134,6 @@ functions:
       - http:
           # Path for this endpoint
           path: album
-          path: file/share
           # HTTP method for this endpoint
           method: post
           # Enable CORS. Don't forget to return the right header in your response
@@ -167,7 +180,6 @@ functions:
             type: COGNITO_USER_POOLS
             authorizerId:
               Ref: DataHiveApiGatewayAuthorizer
-
 resources:
   Resources:
     filesTable:
