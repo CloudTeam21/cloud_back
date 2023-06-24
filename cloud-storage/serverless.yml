@@ -34,6 +34,11 @@ provider:
         - "s3:DeleteObject"
       Resource:
         - "arn:aws:s3:::kiriku-bucket-files/*"
+    - Effect: Allow
+      Action:
+        - cognito-idp:AdminGetUser
+      Resource:
+        - "arn:aws:cognito-idp:eu-central-1:235779924705:userpool/eu-central-1_GWyc5yETX"
 
 # Packaging global configuration
 package:
@@ -58,6 +63,25 @@ functions:
       - http:
           # Path for this endpoint
           path: file
+          # HTTP method for this endpoint
+          method: post
+          # Enable CORS. Don't forget to return the right header in your response
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
+  shareFile:
+    handler: shareFile/share_file.shareFile
+    package:
+      # Include 'shareFile' directory and all child directories
+      include: "shareFile/**"
+    # Specifies events that trigger the Lambda function
+    events:
+      # REST API endpoint of API Gateway
+      - http:
+          # Path for this endpoint
+          path: file/share
           # HTTP method for this endpoint
           method: post
           # Enable CORS. Don't forget to return the right header in your response
