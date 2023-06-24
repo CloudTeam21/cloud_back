@@ -16,8 +16,6 @@ def shareFolder(event, context):
     folder_name = request_body['folder']
     
     table = dynamodb.Table(table_name)
-    # cognito_user = event['requestContext']['authorizer']['claims']
-    # path = cognito_user['cognito:username'] + folder_name + "/"
 
     response = table.scan(
         FilterExpression='begins_with(#file, :prefix)',
@@ -28,7 +26,6 @@ def shareFolder(event, context):
     items = response['Items']
 
     message = "Folder shared successfully"
-    # if 'Item' in item:
 
     for data in items:
         shared_with_list = []
