@@ -25,7 +25,7 @@ def upload(event, context):
     if (folder_name):
         folder_name= "/" + folder_name
 
-    cognito_user = event.requestContext.authorizer.claims
+    cognito_user = event['requestContext']['authorizer']['claims']
     path = cognito_user['cognito:username'] + folder_name + "/" + file_name
 
         

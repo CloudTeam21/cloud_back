@@ -9,13 +9,18 @@ bucket_name = os.environ['BUCKET_NAME']
 s3_client = boto3.client('s3')
 dynamodb = boto3.resource('dynamodb')
 
-def get_files(event, context):
-    # Extract the file content and metadata from the request
-    request_body = json.loads(event['body'])
+def get_albums(event, context):
     # bucket_name = 'bucket-files' #TODO envirement variable
     
-    cognito_user = event.requestContext.authorizer.claims
-    path = cognito_user['cognito:username'] + "/"
+    cognito_user = event['requestContext']['authorizer']['claims']
+    folder_name = event['pathParameters']['album']
+
+    if (folder_name != "all"):
+        folder_name= "/" + folder_name
+    else:
+        folder_name = ""
+
+    path = cognito_user['cognito:username'] + folder_name + "/"
 
     response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=path)
     
@@ -23,7 +28,7 @@ def get_files(event, context):
     filtered_objects = []
     
     for obj in objects:
-        if obj['Key'].startswith(prefix) and obj['Key'].endswith('/'):
-            filtered_objects.append(obj)
+        if obj['Key'].startswith(path) and obj['Key'].endswith('/'):
+            filtered_objects.append(obj['Key'].split(path)[1].split("/")[0])
 
     return create_response(200, filtered_objects)

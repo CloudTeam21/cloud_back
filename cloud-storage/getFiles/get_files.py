@@ -10,8 +10,6 @@ s3_client = boto3.client('s3')
 dynamodb = boto3.resource('dynamodb')
 
 def get_files(event, context):
-    # Extract the file content and metadata from the request
-    request_body = json.loads(event['body'])
     # bucket_name = 'bucket-files' #TODO envirement variable
     folder_name = event['pathParameters']['album']
     
@@ -19,7 +17,7 @@ def get_files(event, context):
         folder_name= "/" + folder_name
     else:
         folder_name = ""
-    cognito_user = event.requestContext.authorizer.claims
+    cognito_user = event['requestContext']['authorizer']['claims']
     path = cognito_user['cognito:username'] + folder_name + "/"
     
     # Table name
@@ -37,7 +35,7 @@ def get_files(event, context):
     for metadata in files_metadata:
         file_key = metadata['file']  
         response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
-        file_content = response['Body'].read()  t
+        file_content = response['Body'].read() 
         files_data.append({'metadata': metadata, 'content': file_content})
 
     # Step 3: Combine DynamoDB Data and Files

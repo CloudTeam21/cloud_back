@@ -1,5 +1,3 @@
-org: jananikolic
-app: cloud-storage
 service: cloud-storage
 frameworkVersion: "3"
 
@@ -32,8 +30,10 @@ provider:
         - "s3:GetObject"
         - "s3:PutObject"
         - "s3:DeleteObject"
+        - "s3:ListBucket"
       Resource:
         - "arn:aws:s3:::kiriku-bucket-files/*"
+        - "arn:aws:s3:::kiriku-bucket-files"
 
 # Packaging global configuration
 package:
@@ -133,7 +133,7 @@ functions:
       # REST API endpoint of API Gateway
       - http:
           # Path for this endpoint
-          path: album
+          path: album/{album}
           # HTTP method for this endpoint
           method: get
           # Enable CORS. Don't forget to return the right header in your response

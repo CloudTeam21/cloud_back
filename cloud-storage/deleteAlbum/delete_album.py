@@ -10,10 +10,8 @@ s3_client = boto3.client('s3')
 dynamodb = boto3.resource('dynamodb')
 
 def delete_album(event, context):
-
-    request_body = json.loads(event['body'])
     
-    cognito_user = event.requestContext.authorizer.claims
+    cognito_user = event['requestContext']['authorizer']['claims']
 
     folder_name = event['pathParameters']['album']
     path = cognito_user['cognito:username'] + "/" + folder_name + "/"
@@ -22,7 +20,7 @@ def delete_album(event, context):
 
     if 'Contents' in response:
         objects = [{'Key': obj['Key']} for obj in response['Contents']]
-        s3.delete_objects(Bucket=bucket_name, Delete={'Objects': objects})
+        s3_client.delete_objects(Bucket=bucket_name, Delete={'Objects': objects})
     # Upload the file to S3
 
     table = dynamodb.Table(table_name)
@@ -35,16 +33,8 @@ def delete_album(event, context):
 
     items = response['Items']
 
-    while 'LastEvaluatedKey' in response:
-        response = table.scan(
-            FilterExpression='begins_with(#file, :prefix)',
-            ExpressionAttributeNames={'#file': 'file'},
-            ExpressionAttributeValues={':prefix': path}
-            ExclusiveStartKey=response['LastEvaluatedKey']
-        )
-        items.extend(response['Items'])
-
     for item in items:
-        table.delete_item(Key=item)
+        print(item['file'])
+        table.delete_item(Key={'file': item['file']})
 
-    return create_response(200, {"message": "Album created successfully"})
+    return create_response(200, {"message": "Album deleted successfully"})

@@ -12,9 +12,9 @@ dynamodb = boto3.resource('dynamodb')
 def create_album(event, context):
 
     request_body = json.loads(event['body'])
-    folder_name = request_body['file'].get('foldername', "")
+    folder_name = request_body.get('foldername', "")
     
-    cognito_user = event.requestContext.authorizer.claims
+    cognito_user = event['requestContext']['authorizer']['claims']
     path = cognito_user['cognito:username'] + "/" + folder_name + "/"
 
     # Upload the file to S3
