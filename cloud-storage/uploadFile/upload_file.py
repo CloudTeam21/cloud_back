@@ -3,6 +3,7 @@ import boto3
 import base64
 import os
 from utility.utils import create_response
+from datetime import datetime
 
 table_name = os.environ['TABLE_NAME']
 bucket_name = os.environ['BUCKET_NAME']
@@ -38,7 +39,7 @@ def upload(event, context):
     
     # Table name
     table = dynamodb.Table(table_name)
-    
+    current_time = datetime.now().isoformat()
     # Insert file name into table
     response = table.put_item(
         Item={
@@ -47,7 +48,8 @@ def upload(event, context):
             'size': file_size,
             'lastModified': file_last_modified,
             'caption': caption,
-            'tags': tags
+            'tags': tags,
+            'added': current_time
         }
     )
     
