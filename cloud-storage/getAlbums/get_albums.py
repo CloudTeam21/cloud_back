@@ -23,12 +23,12 @@ def get_albums(event, context):
     path = cognito_user['cognito:username'] + folder_name + "/"
 
     response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=path)
-    
-    objects = response['Contents']
+    objects = response.get('Contents', [])
     filtered_objects = []
     
     for obj in objects:
         if obj['Key'].startswith(path) and obj['Key'].endswith('/'):
-            filtered_objects.append(obj['Key'].split(path)[1].split("/")[0])
-
+            folder = obj['Key'].split(path)[1].split("/")[0]
+            if (folder != "" and folder not in filtered_objects):
+                filtered_objects.append(folder)
     return create_response(200, filtered_objects)
