@@ -1,6 +1,9 @@
 service: cloud-storage
 frameworkVersion: "3"
 
+plugins:
+  - serverless-step-functions
+
 provider:
   name: aws
   runtime: python3.9
@@ -13,6 +16,8 @@ provider:
       Ref: filesTable
     BUCKET_NAME:
       Ref: filesBucket
+    INVITES_TABLE_NAME: 
+      Ref: invitesTable
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -27,6 +32,17 @@ provider:
         - "Fn::GetAtt": [filesTable, Arn]
     - Effect: Allow
       Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - "Fn::GetAtt": [invitesTable, Arn]
+    - Effect: Allow
+      Action:
         - "s3:GetObject"
         - "s3:PutObject"
         - "s3:DeleteObject"
@@ -37,6 +53,7 @@ provider:
     - Effect: Allow
       Action:
         - cognito-idp:AdminGetUser
+        - cognito-idp:AdminCreateUser
       Resource:
         - "arn:aws:cognito-idp:eu-central-1:235779924705:userpool/eu-central-1_GWyc5yETX"
 
@@ -122,7 +139,6 @@ functions:
             type: COGNITO_USER_POOLS
             authorizerId:
               Ref: DataHiveApiGatewayAuthorizer
-
   createAlbum:
     handler: createAlbum/create_album.create_album
     package:
@@ -206,6 +222,94 @@ functions:
             type: COGNITO_USER_POOLS
             authorizerId:
               Ref: DataHiveApiGatewayAuthorizer
+  validateData:
+    handler: validateData/validate_data.validate_data
+    package:
+      include: "validateData/**"
+  createUser:
+    handler: createUser/create_user.create_user
+    package:
+      include: "createUser/**"
+  sendVerificationEmail:
+    handler: sendVerificationEmail/send_verification_email.send_verification_email
+    package:
+      include: "sendVerificationEmail/**"
+  checkConfirmation:
+    handler: checkConfirmation/check_confirmation.check_confirmation
+    package:
+      include: "checkConfirmation/**"
+  removeUser:
+    handler: removeUser/remove_user.remove_user
+    package:
+      include: "removeUser/**"
+  grantAccess:
+    handler: grantAccess/grant_access.grant_access
+    package:
+      include: "grantAccess/**"
+
+stepFunctions:
+  stateMachines:
+    registerByInvite:
+      name: 'registerByInvite'
+      events: 
+        # Defaults to async invocation
+        - http:
+            path: register-by-invite
+            method: post
+      definition:
+        Comment: "Register User By Invite"
+        StartAt: ValidateData
+        States:
+          ValidateData:
+            Type: Task
+            Resource: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-validateData
+            ResultPath: "$.validatedData"  # Store the result of the task in the "validatedData" field
+            Next: CreateUser
+          CreateUser:
+            Type: Task
+            Next: CheckIfUserValid
+            Resource: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-createUser
+            InputPath: "$.validatedData"
+          CheckIfUserValid:
+            Type: Choice
+            Choices:
+              - Variable: $.statusCode
+                NumericEquals: 200
+                Next: SendVerificationEmail
+            Default: UnsuccessfulRegistration
+          SendVerificationEmail:
+            Type: Task
+            Resource: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-sendVerificationEmail
+            InputPath: "$.validatedData"
+            Next: CheckConfirmation
+          UnsuccessfulRegistration:
+            Type: Pass
+            End: true
+          CheckConfirmation:
+            Type: Task
+            Resource: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-check-confirmation
+            Retry:
+              - ErrorEquals:
+                  - States.TaskFailed
+                IntervalSeconds: 30
+                MaxAttempts: 5
+                BackoffRate: 2
+            Next: CheckInviteState
+          CheckInviteState:
+            Type: Choice
+            Choices:
+              - Variable: $.statusCode
+                NumericEquals: 200
+                Next: GrantAccess
+            Default: RemoveUser
+          RemoveUser:
+            Type: Task
+            Resource: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-remove-user
+            End: true
+          GrantAccess:
+            Type: Task
+            Resource: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-grant-access
+            End: true
 
 resources:
   Resources:
@@ -218,6 +322,19 @@ resources:
             AttributeType: S
         KeySchema:
           - AttributeName: file
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    invitesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: invitesTable
+        AttributeDefinitions:
+          - AttributeName: username
+            AttributeType: S
+        KeySchema:
+          - AttributeName: username
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 1
