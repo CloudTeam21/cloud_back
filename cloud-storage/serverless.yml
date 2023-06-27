@@ -206,6 +206,19 @@ functions:
             type: COGNITO_USER_POOLS
             authorizerId:
               Ref: DataHiveApiGatewayAuthorizer
+  donwloadFile:
+    handler: downloadFile/download_file.download_file
+    package:
+      include: "downloadFile/**"
+    events:
+      - http:
+          path: file/{file}
+          method: get
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
 
 resources:
   Resources:
