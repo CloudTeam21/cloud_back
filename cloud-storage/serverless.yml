@@ -57,32 +57,21 @@ provider:
       Resource:
         - "arn:aws:cognito-idp:eu-central-1:235779924705:userpool/eu-central-1_GWyc5yETX"
 
-# Packaging global configuration
 package:
-  # Create separate zip for each Lambda function
   individually: true
   patterns:
-    # Exclude everything (each Lambda will specify which directory should be included)
-    # To exclude use '!' prefix
     - "!**/**"
-    # Include utility directory for every Lambda function
     - "utility/**"
 
 functions:
   uploadFile:
     handler: uploadFile/upload_file.upload
     package:
-      # Include 'uploadFile' directory and all child directories
       include: "uploadFile/**"
-    # Specifies events that trigger the Lambda function
     events:
-      # REST API endpoint of API Gateway
       - http:
-          # Path for this endpoint
           path: file
-          # HTTP method for this endpoint
           method: post
-          # Enable CORS. Don't forget to return the right header in your response
           cors: true
           authorizer:
             type: COGNITO_USER_POOLS
@@ -91,17 +80,11 @@ functions:
   getFiles:
     handler: getFiles/get_files.get_files
     package:
-      # Include 'uploadFile' directory and all child directories
       include: "getFiles/**"
-    # Specifies events that trigger the Lambda function
     events:
-      # REST API endpoint of API Gateway
       - http:
-          # Path for this endpoint
           path: files/{album}
-          # HTTP method for this endpoint
           method: get
-          # Enable CORS. Don't forget to return the right header in your response
           cors: true
           authorizer:
             type: COGNITO_USER_POOLS
@@ -110,17 +93,24 @@ functions:
   shareFile:
     handler: shareFile/share_file.shareFile
     package:
-      # Include 'shareFile' directory and all child directories
       include: "shareFile/**"
-    # Specifies events that trigger the Lambda function
     events:
-      # REST API endpoint of API Gateway
       - http:
-          # Path for this endpoint
           path: file/share
-          # HTTP method for this endpoint
           method: post
-          # Enable CORS. Don't forget to return the right header in your response
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
+  getSharedFiles:
+    handler: getSharedFiles/get_shared_files.get_files
+    package:
+      include: "getSharedFiles/**"
+    events:
+      - http:
+          path: files/Shared
+          method: get
           cors: true
           authorizer:
             type: COGNITO_USER_POOLS
@@ -142,17 +132,11 @@ functions:
   createAlbum:
     handler: createAlbum/create_album.create_album
     package:
-      # Include 'uploadFile' directory and all child directories
       include: "createAlbum/**"
-    # Specifies events that trigger the Lambda function
     events:
-      # REST API endpoint of API Gateway
       - http:
-          # Path for this endpoint
           path: album
-          # HTTP method for this endpoint
           method: post
-          # Enable CORS. Don't forget to return the right header in your response
           cors: true
           authorizer:
             type: COGNITO_USER_POOLS
@@ -161,17 +145,11 @@ functions:
   deleteAlbum:
     handler: deleteAlbum/delete_album.delete_album
     package:
-      # Include 'uploadFile' directory and all child directories
       include: "deleteAlbum/**"
-    # Specifies events that trigger the Lambda function
     events:
-      # REST API endpoint of API Gateway
       - http:
-          # Path for this endpoint
           path: album/{album}
-          # HTTP method for this endpoint
           method: delete
-          # Enable CORS. Don't forget to return the right header in your response
           cors: true
           authorizer:
             type: COGNITO_USER_POOLS
@@ -180,17 +158,11 @@ functions:
   getAlbums:
     handler: getAlbums/get_albums.get_albums
     package:
-      # Include 'uploadFile' directory and all child directories
       include: "getAlbums/**"
-    # Specifies events that trigger the Lambda function
     events:
-      # REST API endpoint of API Gateway
       - http:
-          # Path for this endpoint
           path: album/{album}
-          # HTTP method for this endpoint
           method: get
-          # Enable CORS. Don't forget to return the right header in your response
           cors: true
           authorizer:
             type: COGNITO_USER_POOLS
