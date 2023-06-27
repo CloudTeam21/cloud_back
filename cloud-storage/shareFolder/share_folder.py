@@ -29,29 +29,30 @@ def shareFolder(event, context):
 
     for data in items:
         shared_with_list = []
-        if 'shared_with' in data:
-            shared_with_list = data['shared_with']
-        
-        # existing_usernames = []
+
         for username in usernames:
             if check_username_exists(username):
                 shared_with_list.append(username)
             else:
                 message = "Some usernames do not exist"
+        
+        if event['requestContext']['authorizer']['claims']['cognito:username'] in shared_with_list:
+            shared_with_list.remove(event['requestContext']['authorizer']['claims']['cognito:username'])
+    
+        if not shared_with_list:
+            result = table.update_item(
+                Key={'file': data['file']},
+                UpdateExpression="REMOVE shared_with",
+                ReturnValues="UPDATED_NEW"
+            )
+        else:
+            result = table.update_item(
+                Key={'file': data['file']},
+                UpdateExpression="SET shared_with = :my_value",
+                ExpressionAttributeValues={":my_value": set(shared_with_list)},
+                ReturnValues="UPDATED_NEW"
+            )
 
-        # shared_with_list.extend(y for y in existing_usernames if y not in shared_with_list)
-        shared_with_list = set(shared_with_list)
-        # Update file into table
-        result = table.update_item(
-            Key={
-            'file': data['file'],
-            },
-            UpdateExpression="SET shared_with = :my_value",
-            ExpressionAttributeValues={ 
-                ":my_value": shared_with_list
-            },
-            ReturnValues="UPDATED_NEW"
-        )
     return create_response(200, {"message": message})
 
 def check_username_exists(username):
