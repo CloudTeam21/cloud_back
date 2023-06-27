@@ -3,6 +3,7 @@ import boto3
 import base64
 import os
 from utility.utils import create_response
+import urllib.parse
 
 table_name = os.environ['TABLE_NAME']
 bucket_name = os.environ['BUCKET_NAME']
@@ -12,9 +13,11 @@ dynamodb = boto3.resource('dynamodb')
 def delete_album(event, context):
     
     cognito_user = event['requestContext']['authorizer']['claims']
+    folder_name = event['pathParameters']['album'].replace("-", "/")
 
-    folder_name = event['pathParameters']['album']
+    folder_name = urllib.parse.unquote(folder_name)
     path = cognito_user['cognito:username'] + "/" + folder_name + "/"
+    print(path)
 
     response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=path)
 

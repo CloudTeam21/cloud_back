@@ -11,31 +11,23 @@ dynamodb = boto3.resource('dynamodb')
 
 def get_files(event, context):
     # bucket_name = 'bucket-files' #TODO envirement variable
-    folder_name = event['pathParameters']['album'].replace("-", "/") + "/"
-    
-    if (folder_name.startswith("all/")):
-        folder_name = folder_name[3:]
-    else:
-        folder_name= "/" + folder_name
+
     cognito_user = event['requestContext']['authorizer']['claims']
-    path = cognito_user['cognito:username'] + folder_name
+
     # Table name
     table = dynamodb.Table(table_name)
     
     response = table.scan(
-        FilterExpression='begins_with(#file, :prefix)',
-        ExpressionAttributeNames={'#file': 'file'},
-        ExpressionAttributeValues={':prefix': path}
+    FilterExpression='contains(shared_with, :cognito_user)',
+    ExpressionAttributeValues={':cognito_user': cognito_user}
     )
     
     files_metadata = response['Items']
     files_metadata = sorted(files_metadata, key=lambda x: x['added'], reverse=True)
     
     files_data = []
+    
     for metadata in files_metadata:
-        file_key = metadata['file']
-        if "/" in file_key.split(path)[1]:
-            continue
         response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
         file_content = response['Body'].read() 
         file_content_base64 = base64.b64encode(file_content)

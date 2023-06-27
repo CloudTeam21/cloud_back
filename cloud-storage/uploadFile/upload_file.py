@@ -52,7 +52,8 @@ def upload(event, context):
             'lastModified': file_last_modified,
             'caption': caption,
             'tags': tags,
-            'added': current_time
+            'added': current_time,
+            'shared_with': []
         }
     )
     send_email_notification(file_name, cognito_user['sub'])

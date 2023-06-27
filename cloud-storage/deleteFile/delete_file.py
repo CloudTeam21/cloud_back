@@ -13,7 +13,7 @@ ses_client = boto3.client('ses')
 
 def delete(event, context):
     user_id = event['requestContext']['authorizer']['claims']['sub']
-    file_path = event['pathParameters']['file']
+    file_path = event['pathParameters']['file'].replace("-", "/")
 
     if True:
         s3_client.delete_object(

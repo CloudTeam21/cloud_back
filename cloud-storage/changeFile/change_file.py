@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 import boto3
 import os
@@ -9,24 +10,32 @@ table_name = os.environ['TABLE_NAME']
 s3_client = boto3.client('s3')
 dynamodb = boto3.resource('dynamodb')
 cognito_client = boto3.client('cognito-idp', region_name='eu-central-1')
+ses_client = boto3.client('ses')
 
 def upload_content(event, context):
     user_id = event['requestContext']['authorizer']['claims']['sub']
-    
-    content_id = event['pathParameters']['contentId']
-    file_name = event['body']['fileName']
-    file_content = event['body']['fileContent']
-    description = event['body']['description']
-    tags = event['body']['tags']
-    
-    if is_authorized(user_id) and is_owner(user_id, file_name):
-        upload_to_s3(content_id, file_name, file_content)
-        create_dynamodb_item(content_id, user_id, file_name, description, tags)
-        response = create_response(200, {'message': 'File uploaded successfully'})
-    else:
-        response = create_response(403, {'message': "You don't have access"})
-    
-    return response
+        # Extract the file path, caption, and tags from the request
+    request_body = json.loads(event['body'])
+    file_path = request_body['file_path']
+    caption = request_body['caption']
+    tags = request_body['tags']
+
+    # Update the caption, tags, and lastModified in the DynamoDB table
+    table = dynamodb.Table(table_name)
+    current_time = datetime.now().isoformat()
+    response = table.update_item(
+        Key={
+            'file': file_path
+        },
+        UpdateExpression='SET caption = :caption, tags = :tags, lastModified = :lastModified',
+        ExpressionAttributeValues={
+            ':caption': caption,
+            ':tags': tags,
+            ':lastModified': current_time
+        }
+    )
+    send_email_notification(file_path, user_id)
+    return create_response(200, {"message": "File updated successfully"})
 
 def is_authorized(user_id):
     try:
@@ -57,21 +66,15 @@ def is_owner(user_id, path):
         
     return False
 
-def upload_to_s3(content_id, file_name, file_content):
-    s3_client.put_object(
-        Bucket=bucket_name,
-        Key=f'{content_id}/{file_name}',
-        Body=file_content
-    )
-
-def create_dynamodb_item(content_id, user_id, file_name, description, tags):
-    table = dynamodb.Table(table_name)
-    table.put_item(
-        Item={
-            'contentId': content_id,
-            'userId': user_id,
-            'fileName': file_name,
-            'description': description,
-            'tags': tags
+def send_email_notification(file_path, user_id):
+    subject = "File Changed Notification"
+    body = f"The file '{file_path}' has been changed."
+    
+    ses_client.send_email(
+        Source="karolinatrambolina@gmail.com",
+        Destination={"ToAddresses": ["karolinatrambolina@gmail.com"]},
+        Message={
+            "Subject": {"Data": subject},
+            "Body": {"Text": {"Data": body}}
         }
     )
