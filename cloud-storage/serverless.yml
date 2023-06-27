@@ -54,6 +54,9 @@ provider:
       Action:
         - cognito-idp:AdminGetUser
         - cognito-idp:AdminCreateUser
+        - cognito-idp:AdminDeleteUser
+        - cognito-idp:AdminUpdateUserAttributes
+        - cognito-idp:AdminSetUserPassword
       Resource:
         - "arn:aws:cognito-idp:eu-central-1:235779924705:userpool/eu-central-1_GWyc5yETX"
 
@@ -218,6 +221,19 @@ functions:
     handler: grantAccess/grant_access.grant_access
     package:
       include: "grantAccess/**"
+  processInvite:
+    handler: processInvite/process_invite.process_invite
+    package:
+      include: "processInvite/**"
+    events:
+      - http:
+          path: invite/{type}
+          method: put
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
 
 stepFunctions:
   stateMachines:
@@ -235,14 +251,19 @@ stepFunctions:
           ValidateData:
             Type: Task
             Resource: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-validateData
-            ResultPath: "$.validatedData"  # Store the result of the task in the "validatedData" field
-            Next: CreateUser
+            Next: CheckIfUserValid
+          CheckIfUserValid:
+            Type: Choice
+            Choices:
+              - Variable: $.statusCode
+                NumericEquals: 200
+                Next: CreateUser
+            Default: UnsuccessfulRegistration
           CreateUser:
             Type: Task
-            Next: CheckIfUserValid
+            Next: CheckIfCreateUserSuccessful
             Resource: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-createUser
-            InputPath: "$.validatedData"
-          CheckIfUserValid:
+          CheckIfCreateUserSuccessful:
             Type: Choice
             Choices:
               - Variable: $.statusCode
@@ -252,14 +273,14 @@ stepFunctions:
           SendVerificationEmail:
             Type: Task
             Resource: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-sendVerificationEmail
-            InputPath: "$.validatedData"
+            # InputPath: "$.validatedData"
             Next: CheckConfirmation
           UnsuccessfulRegistration:
             Type: Pass
             End: true
           CheckConfirmation:
             Type: Task
-            Resource: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-check-confirmation
+            Resource: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-checkConfirmation
             Retry:
               - ErrorEquals:
                   - States.TaskFailed
@@ -276,11 +297,11 @@ stepFunctions:
             Default: RemoveUser
           RemoveUser:
             Type: Task
-            Resource: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-remove-user
+            Resource: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-removeUser
             End: true
           GrantAccess:
             Type: Task
-            Resource: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-grant-access
+            Resource: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-grantAccess
             End: true
 
 resources:

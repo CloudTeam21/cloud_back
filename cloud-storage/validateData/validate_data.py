@@ -53,7 +53,10 @@ def validate_data(event, context):
     if validate_with_cognito(validated_data["invitingUser"]):
         return create_response(400, {"message": "Inviting user does not exist"})
 
-    return validated_data
+    return { 
+        'statusCode': 200, 
+        'body': validated_data
+        }
 
 def validate_email(email):
     email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
@@ -88,4 +91,3 @@ def validate_with_cognito(username):
             return True
     except client.exceptions.UserNotFoundException:
         return True
-
