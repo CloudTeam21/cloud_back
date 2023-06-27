@@ -196,6 +196,32 @@ functions:
             type: COGNITO_USER_POOLS
             authorizerId:
               Ref: DataHiveApiGatewayAuthorizer
+  deleteFile:
+    handler: deleteFile/delete_file.delete
+    package:
+      include: "deleteFile/**"
+    events:
+      - http:
+          path: file/{file}
+          method: delete
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
+  updateFile:
+    handler: changeFile/change_file.upload_content
+    package:
+      include: "changeFile/**"
+    events:
+      - http:
+          path: file/{file}
+          method: put
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
   validateData:
     handler: validateData/validate_data.validate_data
     package:
@@ -284,7 +310,6 @@ stepFunctions:
             Type: Task
             Resource: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-grant-access
             End: true
-          
 
 resources:
   Resources:
