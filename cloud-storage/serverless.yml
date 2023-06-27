@@ -109,6 +109,25 @@ functions:
             type: COGNITO_USER_POOLS
             authorizerId:
               Ref: DataHiveApiGatewayAuthorizer
+  getSharedFiles:
+    handler: getSharedFiles/get_shared_files.get_files
+    package:
+      # Include 'shareFile' directory and all child directories
+      include: "getSharedFiles/**"
+    # Specifies events that trigger the Lambda function
+    events:
+      # REST API endpoint of API Gateway
+      - http:
+          # Path for this endpoint
+          path: files/Shared
+          # HTTP method for this endpoint
+          method: get
+          # Enable CORS. Don't forget to return the right header in your response
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
   createAlbum:
     handler: createAlbum/create_album.create_album
     package:
