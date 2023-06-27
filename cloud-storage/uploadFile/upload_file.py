@@ -9,6 +9,9 @@ table_name = os.environ['TABLE_NAME']
 bucket_name = os.environ['BUCKET_NAME']
 s3_client = boto3.client('s3')
 dynamodb = boto3.resource('dynamodb')
+cognito_client = boto3.client('cognito-idp', region_name='eu-central-1')
+ses_client = boto3.client('ses')
+
 
 def upload(event, context):
     # Extract the file content and metadata from the request
@@ -52,5 +55,28 @@ def upload(event, context):
             'added': current_time
         }
     )
-    
+    send_email_notification(file_name, cognito_user['sub'])
     return create_response(200, {"message": "File uploaded successfully"})
+
+
+def send_email_notification(file_path, user_id):
+    # user = cognito_client.admin_get_user(
+    #         UserPoolId='eu-central-1_GWyc5yETX',
+    #         Username=user_id
+    #     )
+    # recipient_email = None
+    # for attribute in user['UserAttributes']:
+    #     if attribute['Name'] == 'email':
+    #         recipient_email = attribute['Value']
+    #         break
+    subject = "File Uploaded Notification"
+    body = f"The file '{file_path}' has been uploaded."
+    
+    ses_client.send_email(
+        Source="karolinatrambolina@gmail.com",
+        Destination={"ToAddresses": ["karolinatrambolina@gmail.com"]},
+        Message={
+            "Subject": {"Data": subject},
+            "Body": {"Text": {"Data": body}}
+        }
+    )
