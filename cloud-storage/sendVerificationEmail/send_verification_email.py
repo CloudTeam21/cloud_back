@@ -1,33 +1,46 @@
 import boto3
-import json
 from utility.utils import create_response
 
 def send_verification_email(event, context):
-    request_data = event
-    print(request_data)
+    request_data = event['body']
     inviting_user_email = validate_with_cognito(request_data["invitingUser"])
-    print(inviting_user_email)
     username = request_data["username"]
-    client = boto3.client('cognito-idp')
+    invitedBy = request_data["invitingUser"]
  
-    response = client.admin_create_user(
-        UserPoolId='eu-central-1_GWyc5yETX',
-        Username=username,
-        UserAttributes=[
-            {
-                'Name': 'email',
-                'Value': inviting_user_email
-            }
-        ],
-        MessageAction='RESEND'
-    )
+    client = boto3.client('ses')
+    
+    accept = f'<a href="localhost:4200/accept?username={username}&invitedBy={invitedBy}">localhost:4200/accept?username={username}&invitedBy={invitedBy}</a>'
+    deny = f'<a href="localhost:4200/deny?username={username}&invitedBy={invitedBy}">localhost:4200/deny?username={username}&invitedBy={invitedBy}</a>'
+    
+    
+    # Compose the email message
+    subject = 'Email Verification'
+    message = f'Your family member with username {username} has accepted your invitation. To grant them access to your files click link {accept} or if you want to deny click {deny}.'
 
-    # Handle the response and any additional logic
-    # ...
-    return create_response(200, "Verification email sent successfully")
+    response = client.send_email(
+        Source='karolinatrambolina@gmail.com',
+        Destination={
+            'ToAddresses': [inviting_user_email]
+        },
+        Message={
+            'Subject': {
+                'Data': subject
+            },
+            'Body': {
+                'Text': {
+                    'Data': message
+                }
+            }
+        }
+    )
+    
+    return { 
+        'statusCode': 200, 
+        'body': request_data
+        }
 
 def validate_with_cognito(username):
-    client = boto3.client("cognito-idp", region_name="eu-central-1")  # Update with your desired region
+    client = boto3.client("cognito-idp", region_name="eu-central-1")
 
     try:
         response = client.admin_get_user(

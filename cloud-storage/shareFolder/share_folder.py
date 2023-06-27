@@ -32,14 +32,15 @@ def shareFolder(event, context):
         if 'shared_with' in data:
             shared_with_list = data['shared_with']
         
-        existing_usernames = []
+        # existing_usernames = []
         for username in usernames:
             if check_username_exists(username):
-                existing_usernames.append(username)
+                shared_with_list.append(username)
             else:
                 message = "Some usernames do not exist"
 
-        shared_with_list.extend(y for y in existing_usernames if y not in shared_with_list)
+        # shared_with_list.extend(y for y in existing_usernames if y not in shared_with_list)
+        shared_with_list = set(shared_with_list)
         # Update file into table
         result = table.update_item(
             Key={
