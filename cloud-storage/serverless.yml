@@ -215,7 +215,7 @@ functions:
       include: "changeFile/**"
     events:
       - http:
-          path: file/{file}
+          path: file
           method: put
           cors: true
           authorizer:
