@@ -205,6 +205,11 @@ functions:
       - http:
           path: file/{file}
           method: get
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
   validateData:
     handler: validateData/validate_data.validate_data
     package:
