@@ -11,7 +11,7 @@ dynamodb = boto3.resource('dynamodb')
 
 def get_files(event, context):
     # bucket_name = 'bucket-files' #TODO envirement variable
-    folder_name = event['pathParameters']['album'].replace("-", "/")
+    folder_name = event['pathParameters']['album'].replace("-", "/") + "/"
     
     if (folder_name.startswith("all/")):
         folder_name = folder_name[3:]
