@@ -184,6 +184,19 @@ functions:
             type: COGNITO_USER_POOLS
             authorizerId:
               Ref: DataHiveApiGatewayAuthorizer
+  moveFile:
+    handler: moveFile/move_file.delete
+    package:
+      include: "moveFile/**"
+    events:
+      - http:
+          path: file/{file}
+          method: put
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
   updateFile:
     handler: changeFile/change_file.upload_content
     package:
