@@ -9,8 +9,8 @@ def send_verification_email(event, context):
  
     client = boto3.client('ses')
     
-    accept = f'<a href="localhost:4200/accept?username={username}&invitedBy={invitedBy}">localhost:4200/accept?username={username}&invitedBy={invitedBy}</a>'
-    deny = f'<a href="localhost:4200/deny?username={username}&invitedBy={invitedBy}">localhost:4200/deny?username={username}&invitedBy={invitedBy}</a>'
+    accept = f'<a href="http://localhost:4200/accept?username={username}&invitedBy={invitedBy}">localhost:4200/accept?username={username}&invitedBy={invitedBy}</a>'
+    deny = f'<a href="http://localhost:4200/deny?username={username}&invitedBy={invitedBy}">localhost:4200/deny?username={username}&invitedBy={invitedBy}</a>'
     
     
     # Compose the email message
