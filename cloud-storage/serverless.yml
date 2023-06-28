@@ -223,6 +223,19 @@ functions:
             type: COGNITO_USER_POOLS
             authorizerId:
               Ref: DataHiveApiGatewayAuthorizer
+  getAlbumsSharedWith:
+    handler: getAlbumsSharedWith/get_albums_shared_with.get_albums_shared_with
+    package:
+      include: "getAlbumsSharedWith/**"
+    events:
+      - http:
+          path: folder/share/{album}
+          method: get
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
   validateData:
     handler: validateData/validate_data.validate_data
     package:

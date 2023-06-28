@@ -12,7 +12,7 @@ dynamodb = boto3.resource('dynamodb')
 def get_files(event, context):
     # bucket_name = 'bucket-files' #TODO envirement variable
 
-    cognito_user = event['requestContext']['authorizer']['claims']
+    cognito_user = event['requestContext']['authorizer']['claims']['cognito:username']
 
     # Table name
     table = dynamodb.Table(table_name)
