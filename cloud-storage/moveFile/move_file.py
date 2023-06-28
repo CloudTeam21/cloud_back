@@ -12,46 +12,37 @@ ses_client = boto3.client('ses')
 
 def move_file(event, context):
     # Extract the user ID and file paths from the request
-    user_id = event['requestContext']['authorizer']['claims']['sub']
+    user_id = event['requestContext']['authorizer']['claims']['cognito:username']
     request_body = json.loads(event['body'])
     old_file_path = request_body['old_file_path']
     new_file_path = request_body['new_file_path']
+    print(user_id)
 
     # Check if the user is authorized and the owner of the file
-    if not is_authorized(user_id):
-        return create_response(403, {"message": "User is not authorized"})
-
     if not is_owner(user_id, old_file_path):
         return create_response(403, {"message": "User is not the owner of the file"})
 
     try:
-        # Update the file path in the DynamoDB table
+        # Get the existing item
         table = dynamodb.Table(table_name)
-        response = table.update_item(
-            Key={'file': old_file_path},
-            UpdateExpression='SET file = :new_file_path',
-            ExpressionAttributeValues={':new_file_path': new_file_path}
-        )
+        response = table.get_item(Key={'file': old_file_path})
+        existing_item = response.get('Item')
+        
+        if existing_item:
+            # Delete the existing item
+            table.delete_item(Key={'file': old_file_path})
+        
+            # Create a new item with the updated file value
+            new_item = {**existing_item, 'file': new_file_path}
+            table.put_item(Item=new_item)
+        else:
+            # Handle the case where the item with the specified key does not exist
+            return create_response(400, {"message": 'Item not found'})
 
         send_email_notification(new_file_path, user_id)
         return create_response(200, {"message": "File path changed successfully"})
     except Exception as e:
         return create_response(500, {"message": str(e)})
-
-
-def is_authorized(user_id):
-    try:
-        response = cognito_client.admin_get_user(
-            UserPoolId='eu-central-1_GWyc5yETX',
-            Username=user_id
-        )
-        if response['UserStatus'] == 'CONFIRMED':
-            return True
-        else:
-            return False
-    except cognito_client.exceptions.UserNotFoundException:
-        return False
-
 
 def is_owner(user_id, path):
     table = dynamodb.Table(table_name)

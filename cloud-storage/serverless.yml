@@ -190,7 +190,7 @@ functions:
       include: "moveFile/**"
     events:
       - http:
-          path: file/{file}
+          path: file/move
           method: put
           cors: true
           authorizer:
