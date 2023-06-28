@@ -32,6 +32,8 @@ def process_invite(event, context):
     item = response.get('Item')
 
     if item and item.get('invitedBy') == invited_by:
+        if item.get('status') != 'PENDING':
+            return create_response(400, 'Invitation already changed')
         response = invites_table.update_item(
             Key={
                 'username': username

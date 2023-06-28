@@ -27,7 +27,7 @@ def send_verification_email(event, context):
                 'Data': subject
             },
             'Body': {
-                'Text': {
+                'Html': {
                     'Data': message
                 }
             }
