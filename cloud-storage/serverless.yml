@@ -283,6 +283,7 @@ stepFunctions:
         - http:
             path: register-by-invite
             method: post
+            cors: true
       definition:
         Comment: "Register User By Invite"
         StartAt: ValidateData
