@@ -10,32 +10,38 @@ s3_client = boto3.client('s3')
 dynamodb = boto3.resource('dynamodb')
 cognito_client = boto3.client('cognito-idp')
 
-def shareFile(event, context):
+def shareFolder(event, context):
     request_body = json.loads(event['body'])
     usernames = request_body['usernames']
-    file_name = request_body['file']
+    folder_name = request_body['folder']
     cognito_user = event['requestContext']['authorizer']['claims']['cognito:username']
-    file_name = cognito_user + file_name[4:]
-    print(file_name)
+    folder_name = cognito_user + folder_name[4:]
+    print(folder_name)
     
     table = dynamodb.Table(table_name)
-    item = table.get_item(Key={'file': file_name})
 
-    message = "File shared successfully"
-    if 'Item' in item:
+    response = table.scan(
+        FilterExpression='begins_with(#file, :prefix)',
+        ExpressionAttributeNames={'#file': 'file'},
+        ExpressionAttributeValues={':prefix': folder_name}
+    )
 
-        data = item['Item']
+    items = response['Items']
+
+    message = "Folder shared successfully"
+
+    for data in items:
         shared_with_list = []
-        
+
         for username in usernames:
             if check_username_exists(username):
                 shared_with_list.append(username)
             else:
                 message = "Some usernames do not exist"
-
+        
         if event['requestContext']['authorizer']['claims']['cognito:username'] in shared_with_list:
             shared_with_list.remove(event['requestContext']['authorizer']['claims']['cognito:username'])
-
+    
         if not shared_with_list:
             result = table.update_item(
                 Key={'file': data['file']},
@@ -49,9 +55,8 @@ def shareFile(event, context):
                 ExpressionAttributeValues={":my_value": set(shared_with_list)},
                 ReturnValues="UPDATED_NEW"
             )
-        return create_response(200, {"message": message})
-    else:
-        return create_response(400, {"message": "File not found"})
+
+    return create_response(200, {"message": message})
 
 def check_username_exists(username):
     user_pool_id = 'eu-central-1_GWyc5yETX'
@@ -63,5 +68,6 @@ def check_username_exists(username):
         )
         return True  # Users exists
     except ClientError as e:
+        print(e)
         if e.response['Error']['Code'] == 'UserNotFoundException':
             return False  # User does not exist

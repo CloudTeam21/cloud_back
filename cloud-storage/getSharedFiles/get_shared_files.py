@@ -28,7 +28,7 @@ def get_files(event, context):
     files_data = []
     
     for metadata in files_metadata:
-        response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
+        response = s3_client.get_object(Bucket=bucket_name, Key=metadata['file'])
         file_content = response['Body'].read() 
         file_content_base64 = base64.b64encode(file_content)
         files_data.append({'metadata': metadata, 'content': file_content_base64})
