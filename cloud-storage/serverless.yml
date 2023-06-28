@@ -185,7 +185,7 @@ functions:
             authorizerId:
               Ref: DataHiveApiGatewayAuthorizer
   moveFile:
-    handler: moveFile/move_file.delete
+    handler: moveFile/move_file.move_file
     package:
       include: "moveFile/**"
     events:
