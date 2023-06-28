@@ -12,6 +12,7 @@ cognito_client = boto3.client('cognito-idp')
 
 def download_file(event, context):
     file_name = event['pathParameters']['file']
+    file_name = file_name.replace("-","/")
 
     # Check if the user has access to download the file
     if not has_access_to_download(event,file_name):
