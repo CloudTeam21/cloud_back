@@ -1,0 +1,403 @@
+service: cloud-storage
+frameworkVersion: "3"
+
+plugins:
+  - serverless-step-functions
+
+provider:
+  name: aws
+  runtime: python3.9
+  stage: dev
+  region: eu-central-1
+  memorySize: 128
+  timeout: 10
+  environment:
+    TABLE_NAME:
+      Ref: filesTable
+    BUCKET_NAME:
+      Ref: filesBucket
+    INVITES_TABLE_NAME: 
+      Ref: invitesTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - "Fn::GetAtt": [filesTable, Arn]
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - "Fn::GetAtt": [invitesTable, Arn]
+    - Effect: Allow
+      Action:
+        - "s3:GetObject"
+        - "s3:PutObject"
+        - "s3:DeleteObject"
+        - "s3:ListBucket"
+      Resource:
+        - "arn:aws:s3:::kiriku-bucket-files/*"
+        - "arn:aws:s3:::kiriku-bucket-files"
+    - Effect: Allow
+      Action:
+        - cognito-idp:AdminGetUser
+        - cognito-idp:AdminCreateUser
+        - cognito-idp:AdminDeleteUser
+        - cognito-idp:AdminUpdateUserAttributes
+        - cognito-idp:AdminSetUserPassword
+      Resource:
+        - "arn:aws:cognito-idp:eu-central-1:235779924705:userpool/eu-central-1_GWyc5yETX"
+
+package:
+  individually: true
+  patterns:
+    - "!**/**"
+    - "utility/**"
+
+functions:
+  uploadFile:
+    handler: uploadFile/upload_file.upload
+    package:
+      include: "uploadFile/**"
+    events:
+      - http:
+          path: file
+          method: post
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
+  getFiles:
+    handler: getFiles/get_files.get_files
+    package:
+      include: "getFiles/**"
+    events:
+      - http:
+          path: files/{album}
+          method: get
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
+  shareFile:
+    handler: shareFile/share_file.shareFile
+    package:
+      include: "shareFile/**"
+    events:
+      - http:
+          path: file/share
+          method: post
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
+  getSharedFiles:
+    handler: getSharedFiles/get_shared_files.get_files
+    package:
+      include: "getSharedFiles/**"
+    events:
+      - http:
+          path: files/Shared
+          method: get
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
+  shareFolder:
+    handler: shareFolder/share_folder.shareFolder
+    package:
+      include: "shareFolder/**"
+    events:
+      - http:
+          path: folder/share
+          method: post
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
+  createAlbum:
+    handler: createAlbum/create_album.create_album
+    package:
+      include: "createAlbum/**"
+    events:
+      - http:
+          path: album
+          method: post
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
+  deleteAlbum:
+    handler: deleteAlbum/delete_album.delete_album
+    package:
+      include: "deleteAlbum/**"
+    events:
+      - http:
+          path: album/{album}
+          method: delete
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
+  getAlbums:
+    handler: getAlbums/get_albums.get_albums
+    package:
+      include: "getAlbums/**"
+    events:
+      - http:
+          path: album/{album}
+          method: get
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
+  deleteFile:
+    handler: deleteFile/delete_file.delete
+    package:
+      include: "deleteFile/**"
+    events:
+      - http:
+          path: file/{file}
+          method: delete
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
+  moveFile:
+    handler: moveFile/move_file.move_file
+    package:
+      include: "moveFile/**"
+    events:
+      - http:
+          path: file/move
+          method: put
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
+  updateFile:
+    handler: changeFile/change_file.upload_content
+    package:
+      include: "changeFile/**"
+    events:
+      - http:
+          path: file
+          method: put
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
+  donwloadFile:
+    handler: downloadFile/download_file.download_file
+    package:
+      include: "downloadFile/**"
+    events:
+      - http:
+          path: file/download/{file}
+          method: get
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
+  getAlbumsSharedWith:
+    handler: getAlbumsSharedWith/get_albums_shared_with.get_albums_shared_with
+    package:
+      include: "getAlbumsSharedWith/**"
+    events:
+      - http:
+          path: folder/share/{album}
+          method: get
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
+  validateData:
+    handler: validateData/validate_data.validate_data
+    package:
+      include: "validateData/**"
+  createUser:
+    handler: createUser/create_user.create_user
+    package:
+      include: "createUser/**"
+  sendVerificationEmail:
+    handler: sendVerificationEmail/send_verification_email.send_verification_email
+    package:
+      include: "sendVerificationEmail/**"
+  checkConfirmation:
+    handler: checkConfirmation/check_confirmation.check_confirmation
+    package:
+      include: "checkConfirmation/**"
+  removeUser:
+    handler: removeUser/remove_user.remove_user
+    package:
+      include: "removeUser/**"
+  grantAccess:
+    handler: grantAccess/grant_access.grant_access
+    package:
+      include: "grantAccess/**"
+  processInvite:
+    handler: processInvite/process_invite.process_invite
+    package:
+      include: "processInvite/**"
+    events:
+      - http:
+          path: invite/{type}
+          method: put
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: DataHiveApiGatewayAuthorizer
+
+stepFunctions:
+  stateMachines:
+    registerByInvite:
+      name: 'registerByInvite'
+      events: 
+        # Defaults to async invocation
+        - http:
+            path: register-by-invite
+            method: post
+            cors: true
+      definition:
+        Comment: "Register User By Invite"
+        StartAt: ValidateData
+        States:
+          ValidateData:
+            Type: Task
+            Resource: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-validateData
+            Next: CheckIfUserValid
+          CheckIfUserValid:
+            Type: Choice
+            Choices:
+              - Variable: $.statusCode
+                NumericEquals: 200
+                Next: CreateUser
+            Default: UnsuccessfulRegistration
+          CreateUser:
+            Type: Task
+            Next: CheckIfCreateUserSuccessful
+            Resource: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-createUser
+          CheckIfCreateUserSuccessful:
+            Type: Choice
+            Choices:
+              - Variable: $.statusCode
+                NumericEquals: 200
+                Next: SendVerificationEmail
+            Default: UnsuccessfulRegistration
+          SendVerificationEmail:
+            Type: Task
+            Resource: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-sendVerificationEmail
+            # InputPath: "$.validatedData"
+            Next: CheckConfirmation
+          UnsuccessfulRegistration:
+            Type: Pass
+            End: true
+          CheckConfirmation:
+            Type: Task
+            Resource: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-checkConfirmation
+            Retry:
+              - ErrorEquals:
+                  - States.TaskFailed
+                IntervalSeconds: 30
+                MaxAttempts: 5
+                BackoffRate: 2
+            Next: CheckInviteState
+          CheckInviteState:
+            Type: Choice
+            Choices:
+              - Variable: $.statusCode
+                NumericEquals: 200
+                Next: GrantAccess
+            Default: RemoveUser
+          RemoveUser:
+            Type: Task
+            Resource: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-removeUser
+            End: true
+          GrantAccess:
+            Type: Task
+            Resource: arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-grantAccess
+            End: true
+
+resources:
+  Resources:
+    filesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: serverlessFilesTable
+        AttributeDefinitions:
+          - AttributeName: file
+            AttributeType: S
+        KeySchema:
+          - AttributeName: file
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    invitesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: invitesTable
+        AttributeDefinitions:
+          - AttributeName: username
+            AttributeType: S
+        KeySchema:
+          - AttributeName: username
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    filesBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: kiriku-bucket-files
+    DataHiveCognitoUserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: registered-users
+        AutoVerifiedAttributes:
+          - "email"
+        EmailConfiguration: 
+                EmailSendingAccount: COGNITO_DEFAULT
+    DataHiveCognitoUserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: DataHive
+        GenerateSecret: false
+        UserPoolId:
+          Ref: "DataHiveCognitoUserPool"
+    DataHiveApiGatewayAuthorizer:
+      Type: AWS::ApiGateway::Authorizer
+      Properties:
+        Name: DataHive
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        Type: COGNITO_USER_POOLS
+        ProviderARNs:
+          - Fn::GetAtt: [DataHiveCognitoUserPool, Arn]
+        IdentitySource: method.request.header.Authorization
