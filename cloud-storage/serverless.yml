@@ -216,7 +216,7 @@ functions:
       include: "downloadFile/**"
     events:
       - http:
-          path: file/{file}
+          path: file/download/{file}
           method: get
           cors: true
           authorizer:
